@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden Section Palette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..1000&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Google Sans Flex', -apple-system, sans-serif; }
+body { background: #111; color: #ddd; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── Header ── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(17,17,17,0.97); position: sticky; top: 0; z-index: 100;
+  gap: 12px; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; color: #fff; white-space: nowrap; }
+.brand .phi { font-size: 13px; color: #666; }
+
+.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.07); color: #ccc; font-size: 12px;
+  font-family: inherit; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s;
+}
+button:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.25); color: #fff; }
+button.primary { background: rgba(255,255,255,0.12); color: #fff; }
+
+label.toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #888; cursor: pointer; user-select: none;
+}
+label.toggle input { accent-color: #fff; width: 14px; height: 14px; cursor: pointer; }
+label.toggle input:checked ~ span { color: #fff; }
+
+.hue-row { display: flex; align-items: center; gap: 8px; }
+.hue-row label { font-size: 11px; color: #555; white-space: nowrap; }
+#hueInput {
+  -webkit-appearance: none; appearance: none; width: 120px; height: 6px;
+  border-radius: 3px; outline: none; cursor: pointer;
+  background: conic-gradient(oklch(0.65 0.18 0),oklch(0.65 0.18 30),oklch(0.65 0.18 60),oklch(0.65 0.18 90),oklch(0.65 0.18 120),oklch(0.65 0.18 150),oklch(0.65 0.18 180),oklch(0.65 0.18 210),oklch(0.65 0.18 240),oklch(0.65 0.18 270),oklch(0.65 0.18 300),oklch(0.65 0.18 330),oklch(0.65 0.18 360)) top/100% 100%;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+#hueInput::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid #333; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+
+/* ── Main layout ── */
+main { flex: 1; padding: 28px 24px; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+/* ── Section title ── */
+.section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  color: #444; margin-bottom: 14px;
+}
+
+/* ── Palette strip ── */
+.palette-strip {
+  display: flex; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  margin-bottom: 32px; height: 100px;
+}
+.strip-swatch {
+  flex: 1; min-width: 0; cursor: pointer; position: relative;
+  transition: flex .4s cubic-bezier(.4,0,.2,1);
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px;
+}
+.strip-swatch:hover { flex: 2; }
+.strip-swatch .strip-hex {
+  font-size: 10px; font-weight: 700; letter-spacing: .04em; opacity: 0;
+  transition: opacity .15s; pointer-events: none; mix-blend-mode: difference; color: #fff;
+  white-space: nowrap;
+}
+.strip-swatch:hover .strip-hex { opacity: 1; }
+.strip-swatch.copied::after {
+  content: '✓ Copied'; position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 12px; font-weight: 700; color: #fff; background: rgba(0,0,0,0.35);
+}
+
+/* ── Swatch grid ── */
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.swatch-card {
+  border-radius: 10px; overflow: hidden; cursor: pointer; position: relative;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  transition: transform .15s, box-shadow .15s;
+}
+.swatch-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
+.swatch-color { height: 80px; }
+.swatch-info {
+  background: rgba(255,255,255,0.04); border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 8px 10px;
+}
+.swatch-name { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+.swatch-hex  { font-size: 12px; font-weight: 600; color: #ddd; font-family: monospace; }
+.swatch-oklch { font-size: 10px; color: #555; font-family: monospace; margin-top: 2px; }
+.swatch-card.copied .swatch-color::after {
+  content: '✓'; position: absolute; top: 28px; left: 0; width: 100%; text-align: center;
+  font-size: 24px; color: rgba(255,255,255,0.9);
+}
+.swatch-card.fixed-pin {
+  outline: 2px solid rgba(255,255,255,0.4); outline-offset: -2px;
+}
+.pin-btn {
+  position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.2);
+  font-size: 11px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #ccc; opacity: 0; transition: opacity .15s;
+  padding: 0; font-family: inherit;
+}
+.swatch-card:hover .pin-btn { opacity: 1; }
+.swatch-card.fixed-pin .pin-btn { opacity: 1; color: #fff; background: rgba(0,0,0,0.5); }
+
+/* ── CSS export ── */
+#cssExport {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 16px; font-family: monospace; font-size: 12px;
+  color: #7ec8a0; line-height: 1.7; white-space: pre-wrap; word-break: break-all;
+  max-height: 280px; overflow-y: auto; margin-bottom: 10px;
+}
+.copy-css-btn { margin-bottom: 32px; }
+
+/* ── Theory panel ── */
+.theory-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px; margin-bottom: 40px;
+}
+.theory-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; padding: 16px;
+}
+.theory-card h3 { font-size: 12px; font-weight: 700; color: #aaa; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+.theory-card p { font-size: 12px; color: #555; line-height: 1.6; }
+
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: rgba(30,30,30,0.97); border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600;
+  color: #fff; pointer-events: none; transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .25s;
+  opacity: 0; z-index: 999;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Golden Section Palette</h1>
+    <span class="phi">φ · OKLCH</span>
+  </div>
+  <div class="controls">
+    <div class="hue-row">
+      <label for="hueInput">Base hue</label>
+      <input type="range" id="hueInput" min="0" max="360" value="220">
+      <span id="hueVal" style="font-size:11px;color:#666;min-width:30px;">220°</span>
+    </div>
+    <div class="ctrl-divider" style="width:1px;height:20px;background:rgba(255,255,255,0.1);"></div>
+    <button onclick="randomize()">↗ Randomize</button>
+    <button onclick="iterate()">⟳ Iterate +30°</button>
+    <label class="toggle">
+      <input type="checkbox" id="fixToggle">
+      <span>Lock pinned</span>
+    </label>
+    <div class="ctrl-divider" style="width:1px;height:20px;background:rgba(255,255,255,0.1);"></div>
+    <button onclick="copyCSSVars()" class="primary">⬡ Export CSS vars</button>
+  </div>
+</header>
+
+<main>
+  <div class="section-label">Palette strip — hover to expand · click to copy</div>
+  <div class="palette-strip" id="strip"></div>
+
+  <div class="section-label">Swatches — click to copy hex · 📌 to lock color</div>
+  <div class="swatch-grid" id="grid"></div>
+
+  <div class="section-label">CSS custom properties</div>
+  <pre id="cssExport"></pre>
+  <button class="copy-css-btn" onclick="copyCSSVars()">Copy CSS</button>
+
+  <div class="section-label">How it works</div>
+  <div class="theory-grid">
+    <div class="theory-card">
+      <h3>🌈 Color wheel → hue</h3>
+      <p>Each swatch hue steps by φ × 360° ≈ 137.5° — the "golden angle" — guaranteeing maximum visual separation with no clustering.</p>
+    </div>
+    <div class="theory-card">
+      <h3>φ → lightness & chroma</h3>
+      <p>Lightness descends and chroma shifts using golden-ratio fractions (1/φ ≈ 0.618, 1/φ² ≈ 0.382) for mathematically balanced contrast.</p>
+    </div>
+    <div class="theory-card">
+      <h3>🔬 OKLCH color science</h3>
+      <p>Unlike HSL, OKLCH is perceptually uniform — equal numeric steps feel equal to the human eye. Hue 50° and Hue 200° at the same L look equally bright.</p>
+    </div>
+    <div class="theory-card">
+      <h3>✦ Proportion</h3>
+      <p>Strip widths follow φ-weighted proportions (1 : 1/φ : 1/φ² …) so dominant, supporting, and accent roles emerge naturally.</p>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ─── Constants ───────────────────────────────────────────────
+const PHI = (1 + Math.sqrt(5)) / 2;          // ≈ 1.618
+const GOLDEN_ANGLE = 360 / (PHI * PHI);       // ≈ 137.508°
+
+// Swatch role definitions: [name, lightnessTarget, chromaTarget]
+const ROLES = [
+  { name: 'Background',  l: 0.10, cScale: 0.05 },
+  { name: 'Surface',     l: 0.15, cScale: 0.08 },
+  { name: 'Muted',       l: 0.30, cScale: 0.12 },
+  { name: 'Neutral',     l: 0.45, cScale: 0.10 },
+  { name: 'Mid',         l: 0.55, cScale: 0.18 },
+  { name: 'Primary',     l: 0.62, cScale: 0.22 },
+  { name: 'Accent',      l: 0.70, cScale: 0.25 },
+  { name: 'Highlight',   l: 0.78, cScale: 0.20 },
+  { name: 'Tint',        l: 0.86, cScale: 0.12 },
+  { name: 'Pale',        l: 0.93, cScale: 0.06 },
+  { name: 'Near-White',  l: 0.97, cScale: 0.03 },
+  { name: 'Pure',        l: 0.99, cScale: 0.01 },
+];
+
+// ─── State ───────────────────────────────────────────────────
+let baseHue = 220;
+let pinned = {};   // index → true means locked
+
+// ─── Palette generation ──────────────────────────────────────
+function generatePalette(base) {
+  return ROLES.map((role, i) => {
+    if (pinned[i]) return null; // signal to keep existing
+    const hue = (base + i * GOLDEN_ANGLE) % 360;
+    const maxC = 0.37; // OKLCH practical chroma ceiling
+    const c = role.cScale * maxC;
+    return { name: role.name, l: role.l, c, h: hue };
+  });
+}
+
+// ─── OKLCH → sRGB (CSS) ──────────────────────────────────────
+// Modern browsers support oklch() natively; we use it directly.
+function oklchCSS(l, c, h) {
+  return `oklch(${l.toFixed(3)} ${c.toFixed(3)} ${h.toFixed(1)})`;
+}
+
+// Convert oklch to hex via an off-screen canvas for copy purposes
+function oklchToHex(l, c, h) {
+  const css = oklchCSS(l, c, h);
+  // Use a hidden element to resolve the computed color
+  const el = _resolveEl;
+  el.style.color = css;
+  document.body.appendChild(el);
+  const comp = getComputedStyle(el).color;
+  document.body.removeChild(el);
+  return rgbStringToHex(comp);
+}
+const _resolveEl = document.createElement('span');
+_resolveEl.style.display = 'none';
+
+function rgbStringToHex(rgb) {
+  const m = rgb.match(/\d+(\.\d+)?/g);
+  if (!m) return '#000000';
+  const [r, g, b] = m.map(Number);
+  return '#' + [r, g, b].map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+}
+
+// ─── Current palette store ───────────────────────────────────
+let palette = [];  // [{name, l, c, h, hex, css}, …]
+
+function buildPalette(base) {
+  const raw = generatePalette(base);
+  raw.forEach((item, i) => {
+    if (item === null) return; // pinned — keep existing
+    const css = oklchCSS(item.l, item.c, item.h);
+    const hex = oklchToHex(item.l, item.c, item.h);
+    palette[i] = { ...item, css, hex };
+  });
+  // Ensure length
+  if (palette.length < ROLES.length) palette.length = ROLES.length;
+}
+
+// ─── Render ──────────────────────────────────────────────────
+function render() {
+  renderStrip();
+  renderGrid();
+  renderCSS();
+}
+
+function renderStrip() {
+  const strip = document.getElementById('strip');
+  strip.innerHTML = '';
+  // Golden-ratio proportional widths: 1, 1/φ, 1/φ², …
+  const weights = palette.map((_, i) => Math.pow(1 / PHI, i * 0.4));
+  const total = weights.reduce((s, w) => s + w, 0);
+
+  palette.forEach((sw, i) => {
+    const div = document.createElement('div');
+    div.className = 'strip-swatch';
+    div.style.background = sw.css;
+    div.style.flex = (weights[i] / total * palette.length).toFixed(3);
+    const hexEl = document.createElement('span');
+    hexEl.className = 'strip-hex';
+    hexEl.textContent = sw.hex;
+    div.appendChild(hexEl);
+    div.addEventListener('click', () => copyText(sw.hex, div, 'strip'));
+    strip.appendChild(div);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  palette.forEach((sw, i) => {
+    const card = document.createElement('div');
+    card.className = 'swatch-card' + (pinned[i] ? ' fixed-pin' : '');
+
+    const colorDiv = document.createElement('div');
+    colorDiv.className = 'swatch-color';
+    colorDiv.style.background = sw.css;
+
+    const info = document.createElement('div');
+    info.className = 'swatch-info';
+    info.innerHTML = `<div class="swatch-name">${sw.name}</div><div class="swatch-hex">${sw.hex}</div><div class="swatch-oklch">oklch(${sw.l.toFixed(2)} ${sw.c.toFixed(3)} ${sw.h.toFixed(0)}°)</div>`;
+
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'pin-btn';
+    pinBtn.textContent = pinned[i] ? '📌' : '·';
+    pinBtn.title = pinned[i] ? 'Unpin (unlock)' : 'Pin (lock this color)';
+    pinBtn.addEventListener('click', e => { e.stopPropagation(); togglePin(i); });
+
+    card.appendChild(colorDiv);
+    card.appendChild(info);
+    card.appendChild(pinBtn);
+    card.addEventListener('click', () => copyText(sw.hex, card, 'card'));
+    grid.appendChild(card);
+  });
+}
+
+function renderCSS() {
+  const lines = [':root {'];
+  palette.forEach(sw => {
+    const varName = '--color-' + sw.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-$/, '');
+    lines.push(`  ${varName}: ${sw.css};`);
+    lines.push(`  ${varName}-hex: ${sw.hex};`);
+  });
+  lines.push('}');
+  document.getElementById('cssExport').textContent = lines.join('\n');
+}
+
+// ─── Actions ─────────────────────────────────────────────────
+function randomize() {
+  baseHue = Math.random() * 360;
+  document.getElementById('hueInput').value = Math.round(baseHue);
+  document.getElementById('hueVal').textContent = Math.round(baseHue) + '°';
+  buildPalette(baseHue);
+  render();
+}
+
+function iterate() {
+  baseHue = (baseHue + 30) % 360;
+  document.getElementById('hueInput').value = Math.round(baseHue);
+  document.getElementById('hueVal').textContent = Math.round(baseHue) + '°';
+  buildPalette(baseHue);
+  render();
+}
+
+function togglePin(i) {
+  if (pinned[i]) { delete pinned[i]; } else { pinned[i] = true; }
+  renderGrid(); // re-render just grid for pin state
+}
+
+async function copyCSSVars() {
+  const text = document.getElementById('cssExport').textContent;
+  await copyText(text, null, 'css');
+}
+
+async function copyText(text, el, type) {
+  try { await navigator.clipboard.writeText(text); } catch (e) {
+    const ta = document.createElement('textarea'); ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+  }
+  if (el) {
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 900);
+  }
+  showToast(type === 'css' ? 'CSS vars copied!' : `Copied ${text}`);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ─── Hue slider ──────────────────────────────────────────────
+document.getElementById('hueInput').addEventListener('input', e => {
+  baseHue = +e.target.value;
+  document.getElementById('hueVal').textContent = Math.round(baseHue) + '°';
+  buildPalette(baseHue);
+  render();
+});
+
+// ─── Init ────────────────────────────────────────────────────
+buildPalette(baseHue);
+render();
+</script>
+</body>
+</html>
